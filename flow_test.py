@@ -72,22 +72,21 @@ class ProgramFlowTest(object):
         '''運賃、サーチャージ、中継料をunsouListDictに追加する'''
         unsouCD_idx:int = GetIdx.get_idx(untin_col, 'unsouCD')
         self.add_List_to_unsouListDict(unsouListDict, untin_data, 
-                                       unsouCD_idx, 'untin')
+                                       untin_col, 'untin')
         unsouCD_idx:int = GetIdx.get_idx(sur_col, 'unsouCD')
         self.add_List_to_unsouListDict(unsouListDict, sur_data, 
-                                       unsouCD_idx, 'surcharge')
+                                       sur_col, 'surcharge')
         unsouCD_idx:int = GetIdx.get_idx(relay_col, 'unsouCD')
         self.add_List_to_unsouListDict(unsouListDict, relay_data, 
-                                       unsouCD_idx, 'relay')
+                                       relay_col, 'relay')
+
 
         weight:float = float(dic_ui_info['weight_str'])
 
         haulers:List[Hauler] = InstanceFactory.get_Haulers(unsouListDict,
                                                            weight
                                                            )
-        for hauler in haulers:
-            hauler.show()
-
+        print(unsouListDict[3]['untin_col'])
 
         InstanceFactory.delete_cnxn()
 
@@ -96,8 +95,13 @@ class ProgramFlowTest(object):
     def add_List_to_unsouListDict(self,
                                   unsouListDict:List[Dict[str,Any]],
                                   data:List[List[Any]],
-                                  idx: int,
+                                  col: List[str],
                                   key: str) -> None:
+        '''
+        unsouCD:U0011 でフィルターしたdataをunsouListDictに追加する
+        そのデータのcolもunsouListDictに追加する
+        '''
+        idx:int = GetIdx.get_idx(col, 'unsouCD')
         for innerDict in unsouListDict:
             unsouCD:str = innerDict['unsouCD']
             newLines:List[List[Any]] = []
@@ -105,6 +109,8 @@ class ProgramFlowTest(object):
                 if line[idx] == unsouCD:
                     newLines.append(line)
             innerDict[key] = newLines
+            key_col:str = key + '_col'
+            innerDict[key_col] = col
 
 
 
