@@ -2,6 +2,7 @@ from typing import Dict, TYPE_CHECKING, Any, List, Tuple
 import platform
 import sys
 from fetch_data_for_list import IFetchDataForList
+from get_idx import GetIdx
 
 # 実行時にはインポートせず、型チェックの為だけに書く
 if TYPE_CHECKING:
@@ -110,7 +111,13 @@ class InstanceFactory:
 
     @classmethod
     def get_Haulers(cls, unsouListDict:List[Dict[str, Any]], 
-                                         weight:float) -> List['Hauler']:
+                    untin_data: List[List[Any]],
+                    untin_col: List[str],
+                    sur_data: List[List[Any]],
+                    sur_col: List[str],
+                    relay_data: List[List[Any]],
+                    relay_col: List[str],
+                    weight:float) -> List['Hauler']:
 
         from IThreshold import IThreshold
         from less import Less
@@ -121,17 +128,141 @@ class InstanceFactory:
         from calc_type_region import CalcTypeRegion
         from hauler import Hauler
 
-        thresholds: Dict[str, IThreshold] = {}
-        thresholds['less'] = Less()
-        thresholds['lessEqual'] = LessEqual()
+        less: IThreshold = Less()
+        lessEqual: IThreshold = LessEqual()
 
-        calcTypes: Dict[str, ICalcType] = {}
-        calcTypes['relay'] = CalcTypeRelay(thresholds)
-        calcTypes['distance'] = CalcTypeDistance(thresholds)
-        calcTypes['region'] = CalcTypeRegion(thresholds)
+        haulers: List[Hauler] = []
+        for innerDict in unsouListDict:
+            filterUntin:List[List[Any]] = []
+            filterSur: List[List[Any]] = []
+            filterRelay: List[List[Any]] = []
+            unsouCD:str = innerDict['unsouCD']
+            untin_idx: int = GetIdx.get_idx(untin_col, 'unsouCD')
+            sur_idx: int = GetIdx.get_idx(sur_col, 'unsouCD')
+            relay_idx: int = GetIdx.get_idx(relay_col, 'unsouCD')
+            for line in untin_data:
+                if line[untin_idx] == unsouCD:
+                    filterUntin.append(line)
+            for line in sur_data:
+                if line[sur_idx] == unsouCD:
+                    filterSur.append(line)
+            for line in relay_data:
+                if line[relay_idx] == unsouCD:
+                    filterRelay.append(line)
+                
+            #hauler = None
+            if innerDict['isLess'] == '1':
+                if innerDict['isUseRegionForFee'] == '1':
+                    if innerDict['isUseRegionForSur'] == '1':
+                        hauler = Hauler(
+                                innerDict, 
+                                CalcTypeDistance(unsouCD, less, 
+                                                 [],[],
+                                                 [],[]),
+                                CalcTypeRegion(unsouCD, less, 
+                                               filterUntin, untin_col, 
+                                               filterSur, sur_col), 
+                                CalcTypeRelay(unsouCD, less, 
+                                              filterRelay, relay_col),
+                                weight
+                                )
+                    else:
+                        hauler = Hauler(
+                                innerDict, 
+                                CalcTypeDistance(unsouCD, less, 
+                                                 [],[],
+                                                 filterSur, sur_col),
+                                CalcTypeRegion(unsouCD, less, 
+                                               filterUntin, untin_col, 
+                                               [],[]), 
+                                CalcTypeRelay(unsouCD, less, 
+                                              filterRelay, relay_col),
+                                weight
+                                )
+                else:
+                    if innerDict['isUseRegionForSur'] == '1':
+                        hauler = Hauler(
+                                innerDict, 
+                                CalcTypeDistance(unsouCD, less, 
+                                                 filterUntin, untin_col, 
+                                                 [],[]),
+                                CalcTypeRegion(unsouCD, less, 
+                                               [],[], 
+                                               filterSur, sur_col), 
+                                CalcTypeRelay(unsouCD, less, 
+                                              filterRelay, relay_col),
+                                weight
+                                )
+                    else:
+                        hauler = Hauler(
+                                innerDict, 
+                                CalcTypeDistance(unsouCD, less, 
+                                                 filterUntin, untin_col, 
+                                                 filterSur, sur_col),
+                                CalcTypeRegion(unsouCD, less, 
+                                               [],[],
+                                               [],[]), 
+                                CalcTypeRelay(unsouCD, less, 
+                                              filterRelay, relay_col),
+                                weight
+                                )
+            else:
+                if innerDict['isUseRegionForFee'] == '1':
+                    if innerDict['isUseRegionForSur'] == '1':
+                        hauler = Hauler(
+                                innerDict, 
+                                CalcTypeDistance(unsouCD, lessEqual, 
+                                                 [],[],
+                                                 [],[]),
+                                CalcTypeRegion(unsouCD, lessEqual, 
+                                               filterUntin, untin_col, 
+                                               filterSur, sur_col), 
+                                CalcTypeRelay(unsouCD, lessEqual, 
+                                              filterRelay, relay_col),
+                                weight
+                                )
+                    else:
+                        hauler = Hauler(
+                                innerDict, 
+                                CalcTypeDistance(unsouCD, lessEqual, 
+                                                 [],[],
+                                                 filterSur, sur_col),
+                                CalcTypeRegion(unsouCD, lessEqual, 
+                                               filterUntin, untin_col, 
+                                               [],[]), 
+                                CalcTypeRelay(unsouCD, lessEqual, 
+                                              filterRelay, relay_col),
+                                weight
+                                )
+                else:
+                    if innerDict['isUseRegionForSur'] == '1':
+                        hauler = Hauler(
+                                innerDict, 
+                                CalcTypeDistance(unsouCD, lessEqual, 
+                                                 filterUntin, untin_col, 
+                                                 [],[]),
+                                CalcTypeRegion(unsouCD, lessEqual, 
+                                               [],[], 
+                                               filterSur, sur_col), 
+                                CalcTypeRelay(unsouCD, lessEqual, 
+                                              filterRelay, relay_col),
+                                weight
+                                )
+                    else:
+                        hauler = Hauler(
+                                innerDict, 
+                                CalcTypeDistance(unsouCD, lessEqual, 
+                                                 filterUntin, untin_col, 
+                                                 filterSur, sur_col),
+                                CalcTypeRegion(unsouCD, lessEqual, 
+                                               [],[],
+                                               [],[]), 
+                                CalcTypeRelay(unsouCD, lessEqual, 
+                                              filterRelay, relay_col),
+                                weight
+                                )
 
-        haulers:List[Hauler] = []
-        for line in unsouListDict:
-            haulers.append(Hauler(line, calcTypes, weight))
+            if hauler is not None:
+                haulers.append(hauler)
 
         return haulers

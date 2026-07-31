@@ -18,7 +18,7 @@ class ProgramFlowTest(object):
     8. fetch MDESTN_U2002 DesSpeCompanyCD(DesKojCD,DesTokCD, DesNonyuCD で絞る)顧客指定運送屋が取れる
     9. MAITEMで重量閾値判定区分が未満：1、以下：""を得ておく
 
-    [{'unsouCD': 'U0003', 'distance': 50, 'regionCD': '', 'relayCount': 0, 'isDisabled': 0, 'siteiUnsoCD': '', 'unsouName': '西濃', 'isUseRegionForFee': ' ', 'isUseRegionForSur': ' ', 'isLess': ' '}, {'unsouCD': 'U0007', 'distance': 0, 'regionCD': '1', 'relayCount': 0, 'isDisabled': 0, 'siteiUnsoCD': '', 'unsouName': 'ケイヒン', 'isUseRegionForFee': '1', 'isUseRegionForSur': '', 'isLess': '1'}, {'unsouCD': 'U0009', 'distance': 43, 'regionCD': '', 'relayCount': 1, 'isDisabled': 0, 'siteiUnsoCD': '', 'unsouName': '新潟', 'isUseRegionForFee': '', 'isUseRegionForSur': '', 'isLess': ''}, {'unsouCD': 'U0011', 'distance': 30, 'regionCD': '', 'relayCount': 0, 'isDisabled': 0, 'siteiUnsoCD': '', 'unsouName': 'JP', 'isUseRegionForFee': '', 'isUseRegionForSur': '', 'isLess': ''}, {'unsouCD': 'U0012', 'distance': 30, 'regionCD': '', 'relayCount': 0, 'isDisabled': 0, 'siteiUnsoCD': '', 'unsouName': 'JP_奈良広島', 'isUseRegionForFee': '', 'isUseRegionForSur': '', 'isLess': ''}]
+        [{'unsouCD': 'U0011', 'distance': 30, 'regionCD': '', 'relayCount': 0, 'isDisabled': 0, 'siteiUnsoCD': '', 'unsouName': 'JP', 'isUseRegionForFee': '', 'isUseRegionForSur': '', 'isLess': '', 'extraChargeSttday': '20260401', 'extraChargeType': '2', 'fixedFee': Decimal('0.000000'), 'unitAmount': Decimal('10000.000000'), 'unitPrice': Decimal('10.000000')}, {'unsouCD': 'U0012', 'distance': 30, 'regionCD': '', 'relayCount': 0, 'isDisabled': 0, 'siteiUnsoCD': '', 'unsouName': 'JP_奈良広島', 'isUseRegionForFee': '', 'isUseRegionForSur': '', 'isLess': '', 'extraChargeSttday': '20260401', 'extraChargeType': '2', 'fixedFee': Decimal('0.000000'), 'unitAmount': Decimal('10000.000000'), 'unitPrice': Decimal('10.000000')}]
 
     10. fetch MSHPFE_U2002 ShpSTDay, ShpWeightThreshold, ShpDistanceThreshold(ShpKojCD,ShpCompanyCDで絞る) 運賃表
     11. fetch MSURCH_U2002 サーチャージ
@@ -69,38 +69,46 @@ class ProgramFlowTest(object):
         relay_col, relay_data = fetchRelay.fetch_data()
 
 
-        '''運賃、サーチャージ、中継料をunsouListDictに追加する'''
-        unsouCD_idx:int = GetIdx.get_idx(untin_col, 'unsouCD')
+        '''運賃、サーチャージ、中継料をunsouListDictに追加する
+        それぞれのcolのリストも同時に追加する
         self.add_List_to_unsouListDict(unsouListDict, untin_data, 
                                        untin_col, 'untin')
-        unsouCD_idx:int = GetIdx.get_idx(sur_col, 'unsouCD')
         self.add_List_to_unsouListDict(unsouListDict, sur_data, 
                                        sur_col, 'surcharge')
-        unsouCD_idx:int = GetIdx.get_idx(relay_col, 'unsouCD')
         self.add_List_to_unsouListDict(unsouListDict, relay_data, 
                                        relay_col, 'relay')
+        '''
 
 
         weight:float = float(dic_ui_info['weight_str'])
 
+        # Haulerインスタンスの配列を作成する
         haulers:List[Hauler] = InstanceFactory.get_Haulers(unsouListDict,
+                                                           untin_data,
+                                                           untin_col,
+                                                           sur_data,
+                                                           sur_col,
+                                                           relay_data,
+                                                           relay_col,
                                                            weight
                                                            )
-        print(unsouListDict[3]['untin_col'])
 
+        '''cnxnの消去  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'''
         InstanceFactory.delete_cnxn()
+        '''>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'''
+        
+        for hauler in haulers:
+            hauler.calc_base_untin()
 
 
-
+    '''
     def add_List_to_unsouListDict(self,
                                   unsouListDict:List[Dict[str,Any]],
                                   data:List[List[Any]],
                                   col: List[str],
                                   key: str) -> None:
-        '''
         unsouCD:U0011 でフィルターしたdataをunsouListDictに追加する
         そのデータのcolもunsouListDictに追加する
-        '''
         idx:int = GetIdx.get_idx(col, 'unsouCD')
         for innerDict in unsouListDict:
             unsouCD:str = innerDict['unsouCD']
@@ -111,7 +119,4 @@ class ProgramFlowTest(object):
             innerDict[key] = newLines
             key_col:str = key + '_col'
             innerDict[key_col] = col
-
-
-
-
+            '''
