@@ -1,6 +1,9 @@
 from user_interface import *
-from hauler_factory import *
-from typing import Dict
+from typing import Dict, List, Any
+from instance_factory import InstanceFactory
+from fetch_data_for_list import IFetchDataForList
+from hauler import Hauler
+from create_dict_from_list import CreateDictFromList
 
 
 class ProgramFlow(object):
@@ -13,12 +16,14 @@ class ProgramFlow(object):
     5. 行き先を決定する (tokuiCD, nonyuCD)
     6. 荷物の重さweightを入力してもらう
     7. fetch MDSDST_U2002  DsdDistance, DsdRelayCount, DsdIsDisabled(DsdKojCD,DsdTokCD, DsdNonyuCD で絞る) 運送屋の候補、距離、地域、中継回数、行く行かない が取れる。
-    8. {'U0009': {distance: 100, relayCount: 0, isDisabled: 0}, 'U0011':{distance:50, relayCount:0, isDisabled:0}...}
-    9. fetch MDESTN_U2002 DesSpeCompanyCD(DesKojCD,DesTokCD, DesNonyuCD で絞る)顧客指定運送屋が取れる
+    8. fetch MDESTN_U2002 DesSpeCompanyCD(DesKojCD,DesTokCD, DesNonyuCD で絞る)顧客指定運送屋が取れる
+    9. MAITEMで重量閾値判定区分が未満：1、以下：""を得ておく
+
+        [{'unsouCD': 'U0011', 'distance': 30, 'regionCD': '', 'relayCount': 0, 'isDisabled': 0, 'siteiUnsoCD': '', 'unsouName': 'JP', 'isUseRegionForUntin': '', 'isUseRegionForSur': '', 'isLess': '', 'extraChargeSttday': '20260401', 'extraChargeType': '2', 'fixedFee': Decimal('0.000000'), 'unitAmount': Decimal('10000.000000'), 'unitPrice': Decimal('10.000000')}, {'unsouCD': 'U0012', 'distance': 30, 'regionCD': '', 'relayCount': 0, 'isDisabled': 0, 'siteiUnsoCD': '', 'unsouName': 'JP_奈良広島', 'isUseRegionForFee': '', 'isUseRegionForSur': '', 'isLess': '', 'extraChargeSttday': '20260401', 'extraChargeType': '2', 'fixedFee': Decimal('0.000000'), 'unitAmount': Decimal('10000.000000'), 'unitPrice': Decimal('10.000000')}]
+
     10. fetch MSHPFE_U2002 ShpSTDay, ShpWeightThreshold, ShpDistanceThreshold(ShpKojCD,ShpCompanyCDで絞る) 運賃表
     11. fetch MSURCH_U2002 サーチャージ
     12. fetch MRELYF_U2002  中継料
-    11. MAITEMで重量閾値判定区分が未満：1、以下：""を得ておく
     12. U0009, U0011 のインスタンスを作る
         12-1. set(ShpSTDay)を作る。today よりも小さくて最大のshpSTDayを求める。(適用開始日)
         12-2. set(ShpWeightThreshould)を作る。weightが該当する数値を求める
@@ -26,56 +31,87 @@ class ProgramFlow(object):
         12-4. 運賃を求める。
     '''
 
+    def _create_list_dict(self, col:List[str], 
+                                data:List[List[Any]]) -> List[Dict[str,Any]]:
+        listDict = []
+        for line in data:
+            innerDict = dict(zip(col, line))
+            listDict.append(innerDict)
+
+        return listDict
+
+
     def start(self) -> None:
         ui:UserInterface = UserInterface()
         dic_ui_info:Dict[str,str] = ui.user_interface()
         '''{'factory': '@0002', 'tokuiCD': 'T1210', 'nonyuCD': 'H127', 
-        'weight_str': '256.0'} '''
+        'weight_str': '256.0', 'address': '神奈川県秦野市曽谷...'} '''
+
+        # ' 'と''が混在している
+        fetchMDSDST:IFetchDataForList = \
+                                      InstanceFactory.get_fetchMDSDST(dic_ui_info)
+        dsd_col, dsd_data = fetchMDSDST.fetch_data()
 
 
-
-        torr:IHauler =HaulerFactory.create_torr()
-        niigata:IHauler= HaulerFactory.create_niigata()
-        keihin:IHauler = HaulerFactory.create_keihin()
-        seinou:IHauler = HaulerFactory.create_seinou()
-        untin_torr:float = torr.calc_fare(
-                        int(dic_unsoutaiou_info['torr_dist']),
-                        float(dic_unsoutaiou_info['weight']),
-                        dic_unsoutaiou_info['torr_yes_no'],
-                        int(dic_unsoutaiou_info['torr_relay']),
-                        dic_unsoutaiou_info['address'],
-                        )
-
-        untin_niigata:float = niigata.calc_fare(
-                        int(dic_unsoutaiou_info['niigata_dist']),
-                        float(dic_unsoutaiou_info['weight']),
-                        dic_unsoutaiou_info['niigata_yes_no'],
-                        int(dic_unsoutaiou_info['niigata_relay'])
-                        )  
-
+        unsouListDict: List[Dict[str,Any]] = \
+                                self._create_list_dict(dsd_col, dsd_data)
         '''
-        ケイヒンの運賃表は横軸が重量、縦軸が行先（横浜、静岡..など）
-        dictは0(使用しない)とし、縦軸の行先を仮引数addressに設定する
+        [{'unsouCD': 'U0011', 'distance': 30, 'regionCD': '', 'relayCount': 0, 'isDisabled': 0, 'siteiUnsoCD': '', 'unsouName': 'JP', 'isUseRegionForUntin': '', 'isUseRegionForSur': '', 'isLess': '', 'extraChargeSttday': '20260401', 'extraChargeType': '2', 'fixedFee': Decimal('0.000000'), 'unitAmount': Decimal('10000.000000'), 'unitPrice': Decimal('10.000000')}, {'unsouCD': 'U0012', 'distance': 30, 'regionCD': '', 'relayCount': 0, 'isDisabled': 0, 'siteiUnsoCD': '', 'unsouName': 'JP_奈良広島', 'isUseRegionForFee': '', 'isUseRegionForSur': '', 'isLess': '', 'extraChargeSttday': '20260401', 'extraChargeType': '2', 'fixedFee': Decimal('0.000000'), 'unitAmount': Decimal('10000.000000'), 'unitPrice': Decimal('10.000000')}]
         '''
-        untin_keihin:float = keihin.calc_fare(
-                        0,
-                        float(dic_unsoutaiou_info['weight']),
-                        YN = dic_unsoutaiou_info['keihin_yes_no'],
-                        )
 
-        untin_seinou:float = seinou.calc_fare(
-                        int(dic_unsoutaiou_info['seinou_dist']),
-                        float(dic_unsoutaiou_info['weight'])
-                        )
+        '''運賃、サーチャージ、中継料を取得'''
+        fetchUntin = InstanceFactory.get_fetchUntin(dic_ui_info['factory'])
+        untin_col, untin_data = fetchUntin.fetch_data()
 
+        fetchSurcharge = InstanceFactory.get_fetchSurcharge(dic_ui_info['factory'])
+        sur_col, sur_data = fetchSurcharge.fetch_data()
+
+        fetchRelay = InstanceFactory.get_fetchRelay(dic_ui_info['factory'])
+        relay_col, relay_data = fetchRelay.fetch_data()
+
+        '''変換マスタを取得'''
+        fetchHenkan = InstanceFactory.get_fetchHenkan()
+        henkan_col, henkan_data = fetchHenkan.fetch_data()
+
+        '''cnxnの消去  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'''
+        InstanceFactory.delete_cnxn()
+        '''>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'''
+
+        deliveryAreas:Dict[str, str] = CreateDictFromList.deli_areas(
+                henkan_col, henkan_data, '1') # '1' = 行く
+        undeliveryAreas:Dict[str, str] = CreateDictFromList.deli_areas(
+                henkan_col, henkan_data, '2') # '2' = 行かない
+        
+        address: str = dic_ui_info['address']
+
+
+        weight:float = float(dic_ui_info['weight_str'])
+
+        # Haulerインスタンスの配列を作成する
+        haulers:List[Hauler] = InstanceFactory.get_Haulers(unsouListDict,
+                                                           untin_data,
+                                                           untin_col,
+                                                           sur_data,
+                                                           sur_col,
+                                                           relay_data,
+                                                           relay_col,
+                                                           weight,
+                                                           deliveryAreas,
+                                                           undeliveryAreas,
+                                                           address
+                                                           )
+        # 各運送屋の運賃を表示する。
+        print('\n')
+        print('   < 運賃計算結果 > ')
         print()
-        print(f'トール  の運賃 :  {untin_torr: >7} 円')
-        print(f'新  潟  の運賃 :  {untin_niigata: >7} 円')
-        print(f'西  濃  の運賃 :  {untin_seinou: >7} 円')
-        print(f'ケイヒンの運賃 :  {untin_keihin: >7} 円')
-        print()
-        print(f'顧客指定運送屋 :  {dic_unsoutaiou_info["sitei"]}')
-        print()
+        for hauler in haulers:
+            hauler.show_untin()
+
+        # 顧客指定運送屋を表示する
+        print('\n')
+        for hauler in haulers:
+            hauler.show_siteiUnso()
+        print('\n')
 
 
-
+        

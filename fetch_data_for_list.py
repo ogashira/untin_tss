@@ -75,7 +75,7 @@ class FetchMDSDST(IFetchDataForList):
                     " MDSDST_U2002.DsdIsDisabled AS 'isDisabled',"
                     " MDESTN_U2002.DesSpeCompanyCD AS 'siteiUnsoCD',"
                     " MA_UNS.AitNam1 AS 'unsouName',"
-                    " MA_UNS.AitFree1 AS 'isUseRegionForFee'," #地域を使用する:1
+                    " MA_UNS.AitFree1 AS 'isUseRegionForUntin'," #地域を使用する:1
                     " MA_UNS.AitFree2 AS 'isUseRegionForSur'," #地域を使用する:1
                     " MA_UNS.AitFree3 AS 'isLess'," #未満:1
                     " MINDEX_U2002.IndSTDay AS 'extraChargeSttday',"
@@ -241,6 +241,51 @@ class FetchRelay(IFetchDataForList):
             data_list = [list(row) for row in cursor.fetchall()]
         except Exception as e:
             raise Exception(f'データベースfetch中に予期せぬエラーです FetchRelay') from e
+        finally:
+            cursor.close()
+            # cnxnは呼び出しもとでクローズ
+
+
+        return columns, data_list
+
+
+class FetchHenkan(IFetchDataForList):
+    def __init__(self, cnxn) -> None:
+        self.cnxn = cnxn
+
+    def fetch_data(self) -> Tuple[List[str],List[List[Any]]]:
+
+        cursor = self.cnxn.cursor()
+
+        sqlQuery = ("SELECT HenKBN AS 'henkanKBN',"
+                    " HenCD1F AS 'unsou1',"
+                    " HenCD2F AS 'unsou2',"
+                    " HenCD3F AS 'unsou3',"
+                    " HenCD4F AS 'unsou4',"
+                    " HenCD5F AS 'unsou5',"
+                    " HenCD6F AS 'unsou6',"
+                    " HenCD1T AS 'area1',"
+                    " HenCD2T AS 'area2',"
+                    " HenCD3T AS 'area3',"
+                    " HenCD4T AS 'area4',"
+                    " HenCD5T AS 'area5',"
+                    " HenCD6T AS 'area6'"
+                    " FROM MHENKAN"
+                    )
+
+        data_list: List[List[Any]] = []
+        cursor.execute(sqlQuery)
+
+        # 1. カラム名を取得（リスト内包表記）
+        # cursor.description は (名前, 型, 表示サイズ, ...) というタプルのリスト
+        columns = [column[0] for column in cursor.description]
+
+        # 4. 2次元リストへ変換
+        # fetchall() はタプルのリストを返すため、リスト内包表記で各行をリスト化します
+        try:
+            data_list = [list(row) for row in cursor.fetchall()]
+        except Exception as e:
+            raise Exception(f'データベースfetch中に予期せぬエラーです FetchHenkan') from e
         finally:
             cursor.close()
             # cnxnは呼び出しもとでクローズ
