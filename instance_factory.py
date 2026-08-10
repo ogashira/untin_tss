@@ -131,6 +131,7 @@ class InstanceFactory:
                     undeliveryAreas: Dict[str, str],
                     address: str) -> List['Hauler']:
 
+
         from IThreshold import IThreshold
         from less import Less
         from less_equal import LessEqual
@@ -164,101 +165,108 @@ class InstanceFactory:
                 if line[relay_idx] == unsouCD:
                     filterRelay.append(line)
                 
-            #hauler = None
-            if innerDict['isLess'] == '1':
-                if innerDict['isUseRegionForUntin'] == '1':
-                    if innerDict['isUseRegionForSur'] == '1':
-                        hauler = Hauler(
-                                innerDict, 
-                                CalcTypeRegionUntin(unsouCD, less, 
-                                               filterUntin, untin_col), 
-                                CalcTypeRegionSur(unsouCD, less, 
-                                               filterSur, sur_col), 
-                                CalcTypeRelay(unsouCD, less, 
-                                              filterRelay, relay_col),
-                                weight, deliveryAreas, undeliveryAreas, address
-                                )
-                    else:
-                        hauler = Hauler(
-                                innerDict, 
-                                CalcTypeRegionUntin(unsouCD, less, 
-                                               filterUntin, untin_col), 
-                                CalcTypeDistanceSur(unsouCD, less, 
-                                                 filterSur, sur_col),
-                                CalcTypeRelay(unsouCD, less, 
-                                              filterRelay, relay_col),
-                                weight, deliveryAreas, undeliveryAreas, address
-                                )
-                else:
-                    if innerDict['isUseRegionForSur'] == '1':
-                        hauler = Hauler(
-                                innerDict, 
-                                CalcTypeDistanceUntin(unsouCD, less, 
-                                                 filterUntin, untin_col),
-                                CalcTypeRegionSur(unsouCD, less, 
-                                               filterSur, sur_col), 
-                                CalcTypeRelay(unsouCD, less, 
-                                              filterRelay, relay_col),
-                                weight, deliveryAreas, undeliveryAreas, address
-                                )
-                    else:
-                        hauler = Hauler(
-                                innerDict, 
-                                CalcTypeDistanceUntin(unsouCD, less, 
-                                                 filterUntin, untin_col), 
-                                CalcTypeDistanceSur(unsouCD, less, 
-                                                 filterSur, sur_col),
-                                CalcTypeRelay(unsouCD, less, 
-                                              filterRelay, relay_col),
-                                weight, deliveryAreas, undeliveryAreas, address
-                                )
-            else:
-                if innerDict['isUseRegionForUntin'] == '1':
-                    if innerDict['isUseRegionForSur'] == '1':
-                        hauler = Hauler(
-                                innerDict, 
-                                CalcTypeRegionUntin(unsouCD, lessEqual, 
-                                               filterUntin, untin_col), 
-                                CalcTypeRegionSur(unsouCD, lessEqual, 
-                                               filterSur, sur_col), 
-                                CalcTypeRelay(unsouCD, lessEqual, 
-                                              filterRelay, relay_col),
-                                weight, deliveryAreas, undeliveryAreas, address
-                                )
-                    else:
-                        hauler = Hauler(
-                                innerDict, 
-                                CalcTypeRegionUntin(unsouCD, lessEqual, 
-                                               filterUntin, untin_col), 
-                                CalcTypeDistanceSur(unsouCD, lessEqual, 
-                                                 filterSur, sur_col),
-                                CalcTypeRelay(unsouCD, lessEqual, 
-                                              filterRelay, relay_col),
-                                weight, deliveryAreas, undeliveryAreas, address
-                                )
-                else:
-                    if innerDict['isUseRegionForSur'] == '1':
-                        hauler = Hauler(
-                                innerDict, 
-                                CalcTypeDistanceUntin(unsouCD, lessEqual, 
-                                                 filterUntin, untin_col), 
-                                CalcTypeRegionSur(unsouCD, lessEqual, 
-                                               filterSur, sur_col), 
-                                CalcTypeRelay(unsouCD, lessEqual, 
-                                              filterRelay, relay_col),
-                                weight, deliveryAreas, undeliveryAreas, address
-                                )
-                    else:
-                        hauler = Hauler(
-                                innerDict, 
-                                CalcTypeDistanceUntin(unsouCD, lessEqual, 
-                                                 filterUntin, untin_col), 
-                                CalcTypeDistanceSur(unsouCD, lessEqual, 
-                                                 filterSur, sur_col),
-                                CalcTypeRelay(unsouCD, lessEqual, 
-                                              filterRelay, relay_col),
-                                weight, deliveryAreas, undeliveryAreas, address
-                                )
+            isLess: str = innerDict['isLess']
+            isUseRegionForUntin: str = innerDict['isUseRegionForUntin']
+            isUseRegionForSur: str = innerDict['isUseRegionForSur']
+
+            '''半角スペースは空文字に統一する '''
+            if isLess == ' ':
+                isLess = ''
+            if isUseRegionForUntin == ' ':
+                isUseRegionForUntin = ''
+            if isUseRegionForSur == ' ':
+                isUseRegionForSur = ''
+
+            hauler: object = None
+            if isLess == '1' and isUseRegionForUntin == '1' and isUseRegionForSur == '1':
+                hauler = Hauler(
+                        innerDict, 
+                        CalcTypeRegionUntin(unsouCD, less, 
+                                       filterUntin, untin_col), 
+                        CalcTypeRegionSur(unsouCD, less, 
+                                       filterSur, sur_col), 
+                        CalcTypeRelay(unsouCD, less, 
+                                      filterRelay, relay_col),
+                        weight, deliveryAreas, undeliveryAreas, address
+                        )
+            if isLess == '1' and isUseRegionForUntin == '1' and isUseRegionForSur == '':
+                hauler = Hauler(
+                        innerDict, 
+                        CalcTypeRegionUntin(unsouCD, less, 
+                                       filterUntin, untin_col), 
+                        CalcTypeDistanceSur(unsouCD, less, 
+                                         filterSur, sur_col),
+                        CalcTypeRelay(unsouCD, less, 
+                                      filterRelay, relay_col),
+                        weight, deliveryAreas, undeliveryAreas, address
+                        )
+
+            if isLess == '1' and isUseRegionForUntin == '' and isUseRegionForSur == '1':
+                hauler = Hauler(
+                        innerDict, 
+                        CalcTypeDistanceUntin(unsouCD, less, 
+                                         filterUntin, untin_col),
+                        CalcTypeRegionSur(unsouCD, less, 
+                                       filterSur, sur_col), 
+                        CalcTypeRelay(unsouCD, less, 
+                                      filterRelay, relay_col),
+                        weight, deliveryAreas, undeliveryAreas, address
+                        )
+            if isLess == '1' and isUseRegionForUntin == '' and isUseRegionForSur == '':
+                hauler = Hauler(
+                        innerDict, 
+                        CalcTypeDistanceUntin(unsouCD, less, 
+                                         filterUntin, untin_col), 
+                        CalcTypeDistanceSur(unsouCD, less, 
+                                         filterSur, sur_col),
+                        CalcTypeRelay(unsouCD, less, 
+                                      filterRelay, relay_col),
+                        weight, deliveryAreas, undeliveryAreas, address
+                        )
+            if isLess == '' and isUseRegionForUntin == '1' and isUseRegionForSur == '1':
+                hauler = Hauler(
+                        innerDict, 
+                        CalcTypeRegionUntin(unsouCD, lessEqual, 
+                                       filterUntin, untin_col), 
+                        CalcTypeRegionSur(unsouCD, lessEqual, 
+                                       filterSur, sur_col), 
+                        CalcTypeRelay(unsouCD, lessEqual, 
+                                      filterRelay, relay_col),
+                        weight, deliveryAreas, undeliveryAreas, address
+                        )
+            if isLess == '' and isUseRegionForUntin == '1' and isUseRegionForSur == '':
+                hauler = Hauler(
+                        innerDict, 
+                        CalcTypeRegionUntin(unsouCD, lessEqual, 
+                                       filterUntin, untin_col), 
+                        CalcTypeDistanceSur(unsouCD, lessEqual, 
+                                         filterSur, sur_col),
+                        CalcTypeRelay(unsouCD, lessEqual, 
+                                      filterRelay, relay_col),
+                        weight, deliveryAreas, undeliveryAreas, address
+                        )
+            if isLess == '' and isUseRegionForUntin == '' and isUseRegionForSur == '1':
+                hauler = Hauler(
+                        innerDict, 
+                        CalcTypeDistanceUntin(unsouCD, lessEqual, 
+                                         filterUntin, untin_col), 
+                        CalcTypeRegionSur(unsouCD, lessEqual, 
+                                       filterSur, sur_col), 
+                        CalcTypeRelay(unsouCD, lessEqual, 
+                                      filterRelay, relay_col),
+                        weight, deliveryAreas, undeliveryAreas, address
+                        )
+            if isLess == '' and isUseRegionForUntin == '' and isUseRegionForSur == '':
+                hauler = Hauler(
+                        innerDict, 
+                        CalcTypeDistanceUntin(unsouCD, lessEqual, 
+                                         filterUntin, untin_col), 
+                        CalcTypeDistanceSur(unsouCD, lessEqual, 
+                                         filterSur, sur_col),
+                        CalcTypeRelay(unsouCD, lessEqual, 
+                                      filterRelay, relay_col),
+                        weight, deliveryAreas, undeliveryAreas, address
+                        )
 
             if hauler is not None:
                 haulers.append(hauler)
